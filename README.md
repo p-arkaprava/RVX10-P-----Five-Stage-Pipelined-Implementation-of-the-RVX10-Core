@@ -179,6 +179,8 @@ if (RegWriteW)
     instr_retired <= instr_retired + 1;
 ```
 
+# 📂 Project Structure
+rvx10p_<rollno>/
 
 src/
  ├── riscvpipeline.sv
@@ -195,6 +197,8 @@ tests/
 
 docs/
  └── REPORT.md
+
+ # 📦 Deliverables
 
 | File / Folder              | Description                            |
 | -------------------------- | -------------------------------------- |
