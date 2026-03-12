@@ -104,3 +104,107 @@ Implement forwarding paths:
 Detect **load-use hazards**:
 
 If the EX stage requires data from a load still in MEM stage:
+
+-Stall IF stage
+-Stall ID stage
+-Flush ID/EX stage
+
+
+---
+
+### Control Hazards
+
+Branches are evaluated in the **EX stage**.
+
+If a branch is taken:
+
+-Flush instruction in IF/ID
+-Update program counter
+
+---
+
+## 3️⃣ RVX10 Custom Instructions
+
+The processor supports the following **10 custom ALU instructions**.
+
+| Instruction | Description |
+|-------------|-------------|
+| ANDN | Bitwise AND with NOT |
+| ORN | Bitwise OR with NOT |
+| XNOR | Bitwise XNOR |
+| MIN | Minimum (signed) |
+| MAX | Maximum (signed) |
+| MINU | Minimum (unsigned) |
+| MAXU | Maximum (unsigned) |
+| ROL | Rotate Left |
+| ROR | Rotate Right |
+| ABS | Absolute value |
+
+All these instructions execute in the **EX stage** because they are purely **ALU operations**.
+
+No changes are required in **MEM** or **WB** stages.
+
+---
+
+# 🧪 Verification
+
+The processor is tested using the **same test programs used in the single-cycle implementation**.
+
+Expected result:
+Store value 25 at memory address 100
+
+
+Verification steps:
+
+- Run all previous test programs
+- Confirm identical architectural results
+- Observe pipeline activity in **GTKWave**
+- Compare **cycle count vs single-cycle design**
+
+---
+
+# 📈 Performance Counters (Optional Bonus)
+
+Optional counters can measure CPU performance.
+Average CPI can be computed as:
+CPI = cycle_count / instr_retired
+
+```verilog
+reg [31:0] cycle_count, instr_retired;
+
+always @(posedge clk)
+    cycle_count <= cycle_count + 1;
+
+if (RegWriteW)
+    instr_retired <= instr_retired + 1;
+```
+
+
+src/
+ ├── riscvpipeline.sv
+ ├── controller.sv
+ ├── datapath.sv
+ ├── hazard_unit.sv
+ └── forwarding_unit.sv
+
+tb/
+ └── tb_pipeline.sv
+
+tests/
+ └── rvx10_pipeline.hex
+
+docs/
+ └── REPORT.md
+
+| File / Folder              | Description                            |
+| -------------------------- | -------------------------------------- |
+| `src/riscvpipeline.sv`     | Top-level pipeline module              |
+| `src/controller.sv`        | Control unit                           |
+| `src/datapath.sv`          | Processor datapath                     |
+| `src/hazard_unit.sv`       | Hazard detection logic                 |
+| `src/forwarding_unit.sv`   | Forwarding logic                       |
+| `tests/rvx10_pipeline.hex` | Test programs                          |
+| `tb/tb_pipeline.sv`        | Self-checking testbench                |
+| `docs/REPORT.md`           | Design report and waveform screenshots |
+
+
