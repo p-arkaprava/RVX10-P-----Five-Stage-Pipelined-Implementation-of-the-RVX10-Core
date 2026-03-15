@@ -4,25 +4,23 @@
 
 This repository contains the implementation of **RVX10-P**, a **five-stage pipelined RISC-V processor** supporting the **RV32I instruction set along with the RVX10 custom instruction extension**.
 
-The processor is an extension of a previously implemented **single-cycle RVX10 core**, redesigned using a **pipelined datapath** to improve throughput and overall performance.
+The processor is an extension of a previously implemented **single-cycle RVX10 core**, redesigned using a **pipelined datapath** to improve throughput and performance.
 
-The design follows the classic **five-stage RISC pipeline architecture** and includes mechanisms for **hazard detection, forwarding, and pipeline control**.
-
-This project was developed as part of the **Digital Logic and Computer Architecture course at IIT Guwahati**. 
+The architecture includes **pipeline registers, forwarding logic, hazard detection, and pipeline flushing** to correctly execute instructions while maintaining high instruction throughput.
 
 ---
 
 # Processor Architecture
 
-The processor is divided into **five pipeline stages**:
+The processor follows the standard **five-stage pipeline architecture**:
 
-| Stage   | Description                                   |
-| ------- | --------------------------------------------- |
-| **IF**  | Instruction Fetch                             |
-| **ID**  | Instruction Decode and Register Read          |
-| **EX**  | Execute (ALU operations and branch decisions) |
-| **MEM** | Data Memory Access                            |
-| **WB**  | Write Back to Register File                   |
+| Stage | Description                                   |
+| ----- | --------------------------------------------- |
+| IF    | Instruction Fetch                             |
+| ID    | Instruction Decode / Register Read            |
+| EX    | Execute (ALU operations and branch decisions) |
+| MEM   | Data Memory Access                            |
+| WB    | Write Back to Register File                   |
 
 Pipeline registers separate each stage:
 
@@ -33,11 +31,11 @@ IF/ID → ID/EX → EX/MEM → MEM/WB
 These registers store intermediate values such as:
 
 * Program Counter (PC)
-* Instructions
+* Instruction
 * Register operands
 * Immediate values
 * Control signals
-* ALU outputs
+* ALU results
 * Memory data
 
 ---
@@ -46,13 +44,13 @@ These registers store intermediate values such as:
 
 The processor supports:
 
-### Standard RISC-V Base ISA
+### Base ISA
 
 ```
 RV32I
 ```
 
-### Custom RVX10 ALU Instructions
+### RVX10 Custom Instructions
 
 ```
 ANDN
@@ -67,52 +65,77 @@ ROR
 ABS
 ```
 
-These instructions are implemented within the **ALU in the Execute stage**. 
+These custom ALU instructions execute in the **Execute stage**.
 
 ---
 
 # Hazard Handling
 
-## Data Hazards
-
-Data hazards are resolved using **forwarding and stalling mechanisms**.
-
-### Forwarding Unit
-
-The forwarding unit selects ALU operands from later pipeline stages when necessary:
-
-```
-EX/MEM → EX
-MEM/WB → EX
-```
-
-This allows the processor to avoid unnecessary pipeline stalls for back-to-back instructions.
+To maintain correct execution in the pipeline, the processor implements **data forwarding, hazard detection, and pipeline flushing**.
 
 ---
 
-### Load-Use Hazard
+# Forwarding Logic
 
-When an instruction depends on a **load result that is still in the pipeline**, the hazard detection unit:
+Forwarding resolves data hazards when results are available in later pipeline stages.
 
-* Stalls the **IF** and **ID** stages
-* Inserts a **bubble (NOP)** into the pipeline
+### Forwarding for ALU Operand A
+
+```
+if ((Rs1E == RdM) & RegWriteM & (Rs1E != 0))
+    ForwardAE = 10
+else if ((Rs1E == RdW) & RegWriteW & (Rs1E != 0))
+    ForwardAE = 01
+else
+    ForwardAE = 00
+```
+
+### Forwarding for ALU Operand B
+
+The forwarding logic for **SrcBE (ForwardBE)** is identical except that it compares **Rs2E** instead of **Rs1E**.
+
+```
+if ((Rs2E == RdM) & RegWriteM & (Rs2E != 0))
+    ForwardBE = 10
+else if ((Rs2E == RdW) & RegWriteW & (Rs2E != 0))
+    ForwardBE = 01
+else
+    ForwardBE = 00
+```
 
 ---
 
-## Control Hazards
+# Load Hazard Detection
 
-Branches are resolved in the **Execute stage**.
+A stall is introduced when a **load-use hazard** occurs.
 
-If a branch or jump is taken:
+```
+lwStall = ResultSrcE0 & ((Rs1D == RdE) | (Rs2D == RdE))
 
-* The instruction in **IF/ID** is flushed
-* The **PC is updated** with the branch target
+StallF = lwStall
+StallD = lwStall
+```
+
+This prevents the next instruction from using data that has not yet been written back.
+
+---
+
+# Pipeline Flushing
+
+The pipeline must be flushed when a **branch is taken** or when a **load stall introduces a bubble**.
+
+```
+FlushD = PCSrcE
+FlushE = lwStall | PCSrcE
+```
+
+This removes incorrect instructions from the pipeline.
 
 ---
 
 # Pipeline Operation
 
-Example pipeline execution:
+Example pipeline overlap:
 
 ```
 Cycle 1: IF
@@ -122,7 +145,7 @@ Cycle 4: MEM EX  ID  IF
 Cycle 5: WB  MEM EX  ID  IF
 ```
 
-Multiple instructions execute simultaneously, improving throughput compared to a **single-cycle processor**.
+Multiple instructions execute concurrently, improving throughput compared to a single-cycle design.
 
 ---
 
@@ -141,7 +164,7 @@ if (RegWriteW)
     instr_retired <= instr_retired + 1;
 ```
 
-Average CPI can be computed as:
+Average CPI:
 
 ```
 CPI = cycle_count / instr_retired
@@ -177,7 +200,7 @@ rvx10p/
 
 # Simulation
 
-## Tools Required
+### Tools Required
 
 * **Icarus Verilog**
 * **GTKWave**
@@ -216,33 +239,35 @@ gtkwave wave.vcd
 
 The processor is verified using test programs that:
 
-* Execute RV32I and RVX10 instructions
-* Store the value **25 at memory address 100** upon successful completion
-* Demonstrate **pipeline overlap in waveform simulations**. 
+* Execute **RV32I and RVX10 instructions**
+* Store **25 at memory address 100** when the program completes
+* Demonstrate **pipeline overlap in waveform simulations**
 
 Key checks include:
 
 * Correct instruction execution
 * Forwarding for back-to-back ALU operations
 * One-cycle stall for load-use hazards
-* Proper pipeline flushing on taken branches
+* Correct pipeline flush for taken branches
 * Register **x0 always remains zero**
 
 ---
 
 # Key Concepts Demonstrated
 
-* Five-stage pipelined CPU architecture
-* Hazard detection and forwarding
-* Pipeline stalls and flush control
-* RISC-V instruction execution
-* Hardware verification and waveform debugging
-* Performance improvement via pipelining
+* Five-stage pipelined CPU design
+* Data hazard resolution
+* Forwarding and stall control
+* Control hazard handling
+* RTL modeling using Verilog/SystemVerilog
+* Hardware simulation and waveform analysis
 
 ---
 
 # Author
 
 **Arkaprava Paul**
+
 student
+Dept of EEE
 IIT Guwahati
