@@ -164,76 +164,12 @@ if (RegWriteW)
     instr_retired <= instr_retired + 1;
 ```
 
-Average CPI:
 
-```
-CPI = cycle_count / instr_retired
-```
+
 
 ---
 
-# Project Structure
 
-```
-rvx10p/
-│
-├── src/
-│   ├── riscvpipeline.sv
-│   ├── datapath.sv
-│   ├── controller.sv
-│   ├── hazard_unit.sv
-│   └── forwarding_unit.sv
-│
-├── tb/
-│   └── tb_pipeline.sv
-│
-├── tests/
-│   └── rvx10_pipeline.hex
-│
-├── docs/
-│   └── REPORT.md
-│
-└── README.md
-```
-
----
-
-# Simulation
-
-### Tools Required
-
-* **Icarus Verilog**
-* **GTKWave**
-
-Install (Ubuntu):
-
-```
-sudo apt install iverilog gtkwave
-```
-
----
-
-# Run Simulation
-
-Compile the design:
-
-```
-iverilog -o sim.out src/*.sv tb/tb_pipeline.sv
-```
-
-Run simulation:
-
-```
-vvp sim.out
-```
-
-View waveform:
-
-```
-gtkwave wave.vcd
-```
-
----
 
 # Verification
 
@@ -265,6 +201,9 @@ Key checks include:
 ---
 
 # Author
+Arkaprava Paul
+student
+IIT Guwahati
 
 **Arkaprava Paul**
 
